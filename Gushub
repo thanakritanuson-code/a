@@ -1,0 +1,178 @@
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local rootPart = character:WaitForChild("HumanoidRootPart")
+
+-- อัปเดตตัวละครเมื่อ Respawn
+player.CharacterAdded:Connect(function(newChar)
+	character = newChar
+	humanoid = character:WaitForChild("Humanoid")
+	rootPart = character:WaitForChild("HumanoidRootPart")
+end)
+
+---------------------------------------------------------
+-- ระบบสถานะการทำงาน (States)
+---------------------------------------------------------
+local infiniteJumpEnabled = false
+local noclipEnabled = false
+local flyEnabled = false
+
+---------------------------------------------------------
+-- 1. ระบบโดดไม่จำกัด (Infinite Jump)
+---------------------------------------------------------
+UserInputService.JumpRequest:Connect(function()
+	if infiniteJumpEnabled and humanoid then
+		humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+	end
+end)
+
+---------------------------------------------------------
+-- 2. ระบบเดินทะลุกำแพง (Noclip)
+---------------------------------------------------------
+RunService.Stepped:Connect(function()
+	if noclipEnabled and character then
+		for _, part in pairs(character:GetDescendants()) do
+			if part:IsA("BasePart") then
+				part.CanCollide = false
+			end
+		end
+	end
+end)
+
+---------------------------------------------------------
+-- ฟังก์ชันแสดงข้อความตอบกลับในระบบ (AI Response)
+---------------------------------------------------------
+local function sendAIReply(msg)
+	print("[NREKTEE AI]: " .. msg)
+	
+	-- หากมี TextLabel สำหรับแสดง log หรือ ScrollingFrame สามารถใส่โค้ดสร้าง TextLabel ตรงนี้ได้
+	-- ตัวอย่าง: 
+	-- local newLog = Instance.new("TextLabel")
+	-- newLog.Text = "[NREKTEE AI]: " .. msg
+	-- newLog.Parent = script.Parent.ScrollingFrame
+end
+
+---------------------------------------------------------
+-- ฟังก์ชันประมวลผลคำสั่ง (Process Commands)
+---------------------------------------------------------
+local function processCommand(inputText)
+	if inputText == "" then return end
+	
+	local args = string.split(inputText, " ")
+	local cmd = string.lower(args[1] or "")
+	local val = tonumber(args[2])
+
+	-- [แสดงรายการโปรแกรมทั้งหมด]
+	if cmd == "help" or cmd == "เมนู" or cmd == "รายการ" then
+		sendAIReply("=== รายการโปรแกรมทั้งหมด (CODE MODE) ===")
+		sendAIReply("- ขยายฮิตบ็อกซ์ [ตัวเลข]")
+		sendAIReply("- วิ่งเร็ว [ตัวเลข]")
+		sendAIReply("- โดดสูง [ตัวเลข]")
+		sendAIReply("- บิน / ปิดบิน")
+		sendAIReply("- โดดไม่จำกัด")
+		sendAIReply("- ทะลุกำแพง (Noclip)")
+		sendAIReply("- มอง ดำ / เทา / แดง / เขียว / น้ำเงิน / ขาว")
+
+	-- [ขยายฮิตบ็อกซ์]
+	elseif cmd == "ขยายฮิตบ็อกซ์" or cmd == "ขยายตัว" then
+		if val then
+			rootPart.Size = Vector3.new(val, val, val)
+			sendAIReply("ปรับขนาด ฮิตบ็อกซ์ เป็น " .. val)
+		else
+			sendAIReply("กรุณาระบุตัวเลข เช่น: ขยายฮิตบ็อกซ์ 10")
+		end
+
+	-- [วิ่งเร็ว]
+	elseif cmd == "วิ่งเร็ว" or cmd == "speed" then
+		if val then
+			humanoid.WalkSpeed = val
+			sendAIReply("ปรับความเร็ววิ่งเป็น " .. val)
+		else
+			sendAIReply("กรุณาระบุตัวเลข ความเร็ว")
+		end
+
+	-- [โดดสูง]
+	elseif cmd == "โดดสูง" or cmd == "jump" then
+		if val then
+			humanoid.JumpPower = val
+			humanoid.UseJumpPower = true
+			sendAIReply("ปรับระดับการกระโดดเป็น " .. val)
+		else
+			sendAIReply("กรุณาระบุตัวเลข ความสูง")
+		end
+
+	-- [บิน / ปิดบิน]
+	elseif cmd == "บิน" then
+		flyEnabled = true
+		sendAIReply("เปิดใช้งานระบบบิน")
+
+	elseif cmd == "ปิดบิน" then
+		flyEnabled = false
+		sendAIReply("ปิดใช้งานระบบบิน")
+
+	-- [โดดไม่จำกัด]
+	elseif cmd == "โดดไม่จำกัด" or cmd == "infjump" then
+		infiniteJumpEnabled = not infiniteJumpEnabled
+		local status = infiniteJumpEnabled and "เปิด" or "ปิด"
+		sendAIReply("ระบบโดดไม่จำกัด: " .. status)
+
+	-- [ทะลุกำแพง]
+	elseif cmd == "ทะลุกำแพง" or cmd == "noclip" then
+		noclipEnabled = not noclipEnabled
+		local status = noclipEnabled and "เปิด" or "ปิด"
+		sendAIReply("ระบบทะลุกำแพง (Noclip): " .. status)
+
+	-- [เปลี่ยนสี / มอง]
+	elseif cmd == "มอง" or cmd == "เปลี่ยนสี" then
+		local colorName = string.lower(args[2] or "")
+		local colorMap = {
+			["ดำ"] = Color3.fromRGB(0, 0, 0),
+			["เทา"] = Color3.fromRGB(128, 128, 128),
+			["แดง"] = Color3.fromRGB(255, 0, 0),
+			["เขียว"] = Color3.fromRGB(0, 255, 0),
+			["น้ำเงิน"] = Color3.fromRGB(0, 0, 255),
+			["ขาว"] = Color3.fromRGB(255, 255, 255)
+		}
+
+		if colorMap[colorName] then
+			for _, part in pairs(character:GetChildren()) do
+				if part:IsA("BasePart") then
+					part.Color = colorMap[colorName]
+				end
+			end
+			sendAIReply("เปลี่ยนสีตัวละครเป็นสี " .. colorName)
+		else
+			sendAIReply("กรุณาระบุสี: ดำ / เทา / แดง / เขียว / น้ำเงิน / ขาว")
+		end
+	else
+		sendAIReply("ไม่พบคำสั่ง พิมพ์ 'รายการ' หรือ 'help' เพื่อดูคำสั่งทั้งหมด")
+	end
+end
+
+---------------------------------------------------------
+-- เชื่อมต่อปุ่มส่ง และ TextBox
+---------------------------------------------------------
+local textBox = script.Parent:FindFirstChildOfClass("TextBox")
+local sendButton = script.Parent:FindFirstChild("SendButton") -- ตั้งชื่อตามปุ่มส่งใน UI
+
+if textBox then
+	textBox.FocusLost:Connect(function(enterPressed)
+		if enterPressed then
+			processCommand(textBox.Text)
+			textBox.Text = ""
+		end
+	end)
+end
+
+if sendButton then
+	sendButton.MouseButton1Click:Connect(function()
+		if textBox then
+			processCommand(textBox.Text)
+			textBox.Text = ""
+		end
+	end)
+end
